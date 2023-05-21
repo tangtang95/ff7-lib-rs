@@ -5,11 +5,11 @@ pub(super) struct LgpHeader {
 
 /// Lgp Table of Contents (ToC) Entry
 #[derive(Debug)]
-pub(super) struct LgpTocEntry {
+pub struct LgpTocEntry {
     pub filename: String,
     pub offset: u32,
-    pub code: u8,
-    pub duplicate: Option<u16>,
+    pub(super) code: u8,
+    pub(super) duplicate: Option<u16>,
 }
 
 /// LGP Lookup table entry for the Table of Contents (ToC)
@@ -22,4 +22,10 @@ pub(super) struct LgpLookupTableEntry {
 pub(super) struct LgpFileHeader {
     pub filename: String,
     pub byte_size: u32,
+}
+
+#[derive(Debug)]
+pub struct LgpFile {
+    pub filename: String,
+    pub bytes: Vec<u8>
 }
