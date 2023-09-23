@@ -118,7 +118,7 @@ mod test {
         let mut lgp = parse_lgp(buf_reader).unwrap();
 
         for lgp_file in lgp.into_iter() {
-            println!("{:?}", lgp_file);
+            println!("{:?}", lgp_file.filename);
         }
     }
 }
