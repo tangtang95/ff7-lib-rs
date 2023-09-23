@@ -11,14 +11,14 @@ use nom::{
 };
 
 use super::{
-    data::{BGRAColor, PModel, PModelHeader},
+    data::{BGRAColor, PMesh, PMeshHeader},
     P_FILE_HEADER_SIZE,
 };
 
 /**
- * Parse P model file header of 128 bytes
+ * Parse P mesh file header of 128 bytes
  */
-fn p_model_header(input: &[u8]) -> IResult<&[u8], PModelHeader> {
+fn p_mesh_header(input: &[u8]) -> IResult<&[u8], PMeshHeader> {
     let (input, version) = le_i32(input)?;
     let (input, _) = take(4usize)(input)?;
     let (input, vertex_type) = le_i32(input)?;
@@ -36,7 +36,7 @@ fn p_model_header(input: &[u8]) -> IResult<&[u8], PModelHeader> {
 
     Ok((
         input,
-        PModelHeader {
+        PMeshHeader {
             version,
             vertex_type,
             num_vertices,
@@ -71,13 +71,13 @@ fn bgra_color(input: &[u8]) -> IResult<&[u8], BGRAColor> {
     Ok((input, BGRAColor::from(color)))
 }
 
-pub fn parse_p_model<T>(mut reader: T) -> Result<PModel>
+pub fn parse_p_mesh<T>(mut reader: T) -> Result<PMesh>
 where
     T: Read,
 {
     let mut input = [0u8; P_FILE_HEADER_SIZE];
     reader.read_exact(&mut input)?;
-    let (_, p_file_header) = p_model_header(&input).map_err(|e| e.to_owned())?;
+    let (_, p_file_header) = p_mesh_header(&input).map_err(|e| e.to_owned())?;
 
     let mut input: Vec<u8> = vec![];
     reader
@@ -119,7 +119,7 @@ where
     let (_, vertex_colors) = count(bgra_color, p_file_header.num_vertex_colors as usize)(&input)
         .map_err(|e| e.to_owned())?;
 
-    Ok(PModel::new(
+    Ok(PMesh::new(
         vertices,
         normals,
         unk1_array,
@@ -137,8 +137,8 @@ mod test {
     fn test() {
         let file = File::open("data/aaac.p").unwrap();
         let buf_reader = BufReader::new(file);
-        let polygon_data = parse_p_model(buf_reader).unwrap();
+        let p_mesh = parse_p_mesh(buf_reader).unwrap();
 
-        println!("{:?}", polygon_data);
+        println!("{:?}", p_mesh);
     }
 }

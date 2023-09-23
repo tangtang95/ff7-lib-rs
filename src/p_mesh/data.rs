@@ -2,7 +2,7 @@ use glam::{Vec3, Vec2};
 use derive_more::Constructor;
 
 #[derive(Debug)]
-pub struct PModelHeader {
+pub struct PMeshHeader {
     pub version: i32,
     pub vertex_type: i32,
     pub num_vertices: i32, 
@@ -29,7 +29,7 @@ pub struct BGRAColor {
 }
 
 #[derive(Default, Debug, Constructor)]
-pub struct PModel {
+pub struct PMesh {
     vertices: Vec<Vec3>,
     normals: Vec<Vec3>,
     unk1: Vec<Vec3>,
