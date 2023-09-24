@@ -4,6 +4,7 @@ use std::{io::Read, mem::size_of};
 use glam::{Vec2, Vec3};
 use nom::{
     bytes::complete::take,
+    combinator::{map, verify},
     multi::count,
     number::complete::{le_f32, le_i32, le_u32},
     sequence::Tuple,
@@ -15,6 +16,11 @@ use super::{
     P_FILE_HEADER_SIZE,
 };
 
+fn le_i32_to_usize(input: &[u8]) -> IResult<&[u8], usize> {
+    let i32_positive_parser = verify(le_i32, |&num| num >= 0);
+    map(i32_positive_parser, |num| num as usize)(input)
+}
+
 /**
  * Parse P mesh file header of 128 bytes
  */
@@ -23,13 +29,15 @@ fn p_mesh_header(input: &[u8]) -> IResult<&[u8], PMeshHeader> {
     let (input, _) = take(4usize)(input)?;
     let (input, vertex_type) = le_i32(input)?;
 
-    let (input, (num_vertices, num_normals, num_unk1)) = (le_i32, le_i32, le_i32).parse(input)?;
-    let (input, (num_tex_coords, num_vertex_colors)) = (le_i32, le_i32).parse(input)?;
-    let (input, (num_edges, num_polys)) = (le_i32, le_i32).parse(input)?;
+    let (input, (num_vertices, num_normals, num_unk1)) =
+        (le_i32_to_usize, le_i32_to_usize, le_i32_to_usize).parse(input)?;
+    let (input, (num_tex_coords, num_vertex_colors)) =
+        (le_i32_to_usize, le_i32_to_usize).parse(input)?;
+    let (input, (num_edges, num_polys)) = (le_i32_to_usize, le_i32_to_usize).parse(input)?;
 
-    let (input, (num_unk2, num_unk3)) = (le_i32, le_i32).parse(input)?;
+    let (input, (num_unk2, num_unk3)) = (le_i32_to_usize, le_i32_to_usize).parse(input)?;
     let (input, (num_hundreds, num_groups, num_bounding_boxes)) =
-        (le_i32, le_i32, le_i32).parse(input)?;
+        (le_i32_to_usize, le_i32_to_usize, le_i32_to_usize).parse(input)?;
     let (input, norm_index_table_flags) = le_i32(input)?;
 
     let (input, _) = take(64usize)(input)?;
@@ -82,41 +90,41 @@ where
     let mut input: Vec<u8> = vec![];
     reader
         .by_ref()
-        .take(p_file_header.num_vertices as u64 * size_of::<f32>() as u64 * 3)
+        .take((p_file_header.num_vertices * size_of::<f32>() * 3).try_into()?)
         .read_to_end(&mut input)?;
     let (_, vertices) =
-        count(vec3, p_file_header.num_vertices as usize)(&input).map_err(|e| e.to_owned())?;
+        count(vec3, p_file_header.num_vertices)(&input).map_err(|e| e.to_owned())?;
 
     let mut input: Vec<u8> = vec![];
     reader
         .by_ref()
-        .take(p_file_header.num_normals as u64 * size_of::<f32>() as u64 * 3)
+        .take((p_file_header.num_normals * size_of::<f32>() * 3).try_into()?)
         .read_to_end(&mut input)?;
     let (_, normals) =
-        count(vec3, p_file_header.num_normals as usize)(&input).map_err(|e| e.to_owned())?;
+        count(vec3, p_file_header.num_normals)(&input).map_err(|e| e.to_owned())?;
 
     let mut input: Vec<u8> = vec![];
     reader
         .by_ref()
-        .take(p_file_header.num_unk1 as u64 * size_of::<f32>() as u64 * 3)
+        .take((p_file_header.num_unk1 * size_of::<f32>() * 3).try_into()?)
         .read_to_end(&mut input)?;
     let (_, unk1_array) =
-        count(vec3, p_file_header.num_unk1 as usize)(&input).map_err(|e| e.to_owned())?;
+        count(vec3, p_file_header.num_unk1)(&input).map_err(|e| e.to_owned())?;
 
     let mut input: Vec<u8> = vec![];
     reader
         .by_ref()
-        .take(p_file_header.num_tex_coords as u64 * size_of::<f32>() as u64 * 2)
+        .take((p_file_header.num_tex_coords * size_of::<f32>() * 2).try_into()?)
         .read_to_end(&mut input)?;
     let (_, tex_coords) =
-        count(vec2, p_file_header.num_tex_coords as usize)(&input).map_err(|e| e.to_owned())?;
+        count(vec2, p_file_header.num_tex_coords)(&input).map_err(|e| e.to_owned())?;
 
     let mut input: Vec<u8> = vec![];
     reader
         .by_ref()
-        .take(p_file_header.num_vertex_colors as u64 * size_of::<u32>() as u64)
+        .take((p_file_header.num_vertex_colors * size_of::<u32>()).try_into()?)
         .read_to_end(&mut input)?;
-    let (_, vertex_colors) = count(bgra_color, p_file_header.num_vertex_colors as usize)(&input)
+    let (_, vertex_colors) = count(bgra_color, p_file_header.num_vertex_colors)(&input)
         .map_err(|e| e.to_owned())?;
 
     Ok(PMesh::new(
