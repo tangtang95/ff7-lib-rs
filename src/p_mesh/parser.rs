@@ -99,13 +99,13 @@ where
         .take(p_mesh_byte_size.try_into()?)
         .read_to_end(&mut input)?;
 
-    let (_, vertices) =
+    let (input, vertices) =
         count(vec3, p_file_header.num_vertices)(&input).map_err(|e| e.to_owned())?;
-    let (_, normals) = count(vec3, p_file_header.num_normals)(&input).map_err(|e| e.to_owned())?;
-    let (_, unk1_array) = count(vec3, p_file_header.num_unk1)(&input).map_err(|e| e.to_owned())?;
-    let (_, tex_coords) =
+    let (input, normals) = count(vec3, p_file_header.num_normals)(&input).map_err(|e| e.to_owned())?;
+    let (input, unk1_array) = count(vec3, p_file_header.num_unk1)(&input).map_err(|e| e.to_owned())?;
+    let (input, tex_coords) =
         count(vec2, p_file_header.num_tex_coords)(&input).map_err(|e| e.to_owned())?;
-    let (_, vertex_colors) =
+    let (input, vertex_colors) =
         count(bgra_color, p_file_header.num_vertex_colors)(&input).map_err(|e| e.to_owned())?;
 
     Ok(PMesh::new(
