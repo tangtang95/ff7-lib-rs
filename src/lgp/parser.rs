@@ -61,8 +61,8 @@ fn lgp_lookup_table_entry(input: &[u8]) -> IResult<&[u8], LgpLookupTableEntry> {
     Ok((
         input,
         LgpLookupTableEntry {
-            toc_offset: toc_offset as usize,
-            file_count: file_count as usize,
+            toc_offset: toc_offset.into(),
+            file_count: file_count.into(),
         },
     ))
 }
@@ -106,7 +106,7 @@ where
     let mut input: Vec<u8> = Vec::with_capacity(lgp_header.file_count);
     reader
         .by_ref()
-        .take((lgp_header.file_count * LGP_TOC_SIZE) as u64)
+        .take((lgp_header.file_count * LGP_TOC_SIZE).try_into()?)
         .read_to_end(&mut input)?;
     let (_, lgp_toc) = lgp_toc(&input, lgp_header.file_count).map_err(|e| e.to_owned())?;
 
@@ -128,7 +128,7 @@ where
         reader,
         toc: lgp_toc,
         lookup_table: lgp_lookup_table,
-        byte_size: lgp_size as usize,
+        byte_size: lgp_size.try_into()?,
     })
 }
 

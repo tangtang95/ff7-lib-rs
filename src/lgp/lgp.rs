@@ -11,16 +11,16 @@ use super::{
 };
 
 fn lgp_read_file_bytes<T: Read + Seek>(reader: &mut T, offset: u64) -> Result<Vec<u8>> {
-    reader.seek(SeekFrom::Start(offset as u64))?;
+    reader.seek(SeekFrom::Start(offset))?;
     let mut buffer = [0u8; LGP_FILE_HEADER_SIZE];
     reader.read_exact(&mut buffer)?;
 
     let (_, lgp_file_header) = lgp_file_header(&buffer).map_err(|e| e.to_owned())?;
 
-    let mut file_bytes = Vec::with_capacity(lgp_file_header.byte_size as usize);
+    let mut file_bytes = Vec::with_capacity(lgp_file_header.byte_size.try_into()?);
     reader
         .by_ref()
-        .take(lgp_file_header.byte_size as u64)
+        .take(lgp_file_header.byte_size.try_into()?)
         .read_to_end(&mut file_bytes)?;
     Ok(file_bytes)
 }
@@ -46,7 +46,7 @@ impl<T: Read + Seek> Lgp<T> {
             .ok_or(anyhow!("Could not lookup filename in Lookup Table!"))?
             .ok_or(anyhow!("Could not find TOC entry matching filename!"))?;
 
-        lgp_read_file_bytes(&mut self.reader, toc_entry.offset as u64)
+        lgp_read_file_bytes(&mut self.reader, toc_entry.offset.into())
     }
 
     pub fn files_metadata_iter(&self) -> Iter<LgpTocEntry> {
@@ -97,7 +97,7 @@ impl<T: Read + Seek> Iterator for LgpIterator<T> {
     fn next(&mut self) -> Option<Self::Item> {
         let toc_entry = self.toc.get(self.toc_idx)?;
         self.toc_idx += 1;
-        let file_bytes = lgp_read_file_bytes(&mut self.reader, toc_entry.offset as u64).ok()?;
+        let file_bytes = lgp_read_file_bytes(&mut self.reader, toc_entry.offset.into()).ok()?;
         Some(LgpFile {
             filename: toc_entry.filename.clone(),
             bytes: file_bytes,
@@ -109,13 +109,12 @@ impl<T: Read + Seek> Iterator for LgpIterator<T> {
 mod test {
     use std::{fs::File, io::BufReader};
     use crate::lgp::parser::parse_lgp;
-    use super::*;
 
     #[test]
     fn test() {
         let file = File::open("data/moviecam.lgp").unwrap();
         let buf_reader = BufReader::new(file);
-        let mut lgp = parse_lgp(buf_reader).unwrap();
+        let lgp = parse_lgp(buf_reader).unwrap();
 
         for lgp_file in lgp.into_iter() {
             println!("{:?}", lgp_file.filename);
